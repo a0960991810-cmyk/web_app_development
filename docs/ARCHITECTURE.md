@@ -1,97 +1,74 @@
-# 系統架構設計：線上算命系統
+# 系統架構設計 (Architecture) - 工作管理系統
 
 ## 1. 技術架構說明
 
-本專案採用伺服器端渲染（Server-Side Rendering, SSR）架構，不進行前後端分離，以保持架構單純，適合快速開發與驗證 MVP（最小可行性產品）。
+本系統為一個輕量級的 Web 應用程式，專為個人任務管理設計。主要的技術選型如下：
 
-- **選用技術與原因**：
-  - **後端：Python + Flask**。Flask 是一個輕量級的網頁框架，學習曲線平緩，非常適合用來快速建立只有少數路由與功能的小型系統。
-  - **模板引擎：Jinja2**。內建於 Flask 中，可以直接在 HTML 中寫入 Python 變數與邏輯（如迴圈、條件判斷），快速實現動態網頁渲染。
-  - **資料庫：SQLite**。這是一個輕量級的關聯式資料庫，不需要額外架設伺服器，資料儲存在單一檔案中，非常適合初期的使用者紀錄與香油錢捐獻紀錄。
-
-- **Flask MVC 模式說明**：
-  - **Model（模型）**：負責與資料庫（SQLite）溝通。例如定義 `User`（使用者）與 `History`（算命紀錄）等資料表結構，並處理資料的新增、查詢。
-  - **View（視圖）**：負責畫面呈現，由 Jinja2 搭配 HTML/CSS/JS 構成。用來呈現抽籤結果、捐獻表單與歷史紀錄畫面。
-  - **Controller（控制器）**：由 Flask 的路由 (`routes`) 擔任。負責接收來自使用者的 Request（如點擊抽籤、註冊會員、送出捐獻表單），調用 Model 去要資料，最後把資料傳給 View 來產生畫面回傳給使用者。
+- **後端框架：Python + Flask**
+  - **選用原因**：Flask 是一套輕量、靈活的微框架（Micro-framework），非常適合用來快速打造像工作管理系統這樣的小型 Web 應用，能夠大幅降低開發阻力。
+- **模板引擎：Jinja2**
+  - **選用原因**：Jinja2 是 Flask 預設搭配的模板引擎，能將後端傳遞過來的資料動態渲染為 HTML。我們不採用前後端分離的架構（如 React/Vue + API 等單頁應用程式），而是由 Flask 與 Jinja2 在伺服器端把畫面組合好再回傳給瀏覽器，如此使得系統架構單純且極易維護。
+- **資料庫：SQLite**
+  - **選用原因**：由於目標是用於個人的日常工作管理，資料量極少（預期為數千筆以內）。SQLite 是一個內建在單一檔案中的關聯式資料庫，不需要額外架設與維護複雜的資料庫伺服器，部署與開發都極為方便。
+- **架構設計模式：基於 MVC (Model-View-Controller) 概念**
+  - **Model (模型)**：負責定義資料的結構與操作邏輯（對應到資料庫中的工作清單資料表）。
+  - **View (視圖)**：負責呈現使用者介面（透過 Jinja2 組合與渲染出的 HTML 頁面）。
+  - **Controller (控制器)**：負責接收使用者的請求，呼叫 Model 取得或更新資料，然後把資料交給 View 去渲染（對應到 Flask 的 Routes 以及處理函數）。
 
 ## 2. 專案資料夾結構
 
-以下是專案預計的資料夾結構，每個目錄與檔案皆有明確的職責劃分：
+為了保持程式碼的可維護性，建議將不同職責的檔案分門別類，採用的資料夾結構如下：
 
 ```text
 web_app_development/
-├── app/
-│   ├── models/             ← 資料庫模型 (Models)
-│   │   ├── __init__.py
-│   │   ├── user.py         ← 會員資料表定義 (處理註冊登入)
-│   │   └── record.py       ← 算命紀錄與捐獻紀錄資料表定義
-│   ├── routes/             ← Flask 路由 (Controllers)
-│   │   ├── __init__.py
-│   │   ├── main.py         ← 首頁與算命/抽籤的核心路由
-│   │   ├── auth.py         ← 註冊、登入與登出路由
-│   │   └── api.py          ← (可選) 處理前端 AJAX 請求，像是香油錢捐獻 API
-│   ├── templates/          ← Jinja2 HTML 模板 (Views)
-│   │   ├── base.html       ← 共用模板（包含標頭、導覽列、頁尾）
-│   │   ├── index.html      ← 首頁/算命介面
-│   │   ├── result.html     ← 抽籤/算命結果顯示頁面
-│   │   ├── history.html    ← 會員中心與歷史紀錄頁面
-│   │   ├── donate.html     ← 香油錢捐獻頁面
-│   │   └── auth/           ← 身份驗證相關視圖
-│   │       ├── login.html
-│   │       └── register.html
-│   └── static/             ← CSS / JS 等靜態資源
+├── docs/                      ← 放置所有開發技術相關文件 (如 PRD.md, ARCHITECTURE.md 等)
+├── app/                       ← 應用程式的主要程式碼目錄
+│   ├── __init__.py            ← 初始化 Flask App、載入設定與初始化資料庫
+│   ├── models.py              ← 資料庫模型宣告 (工作任務資料表)
+│   ├── routes.py              ← Flask 路由 (定義 URL 與對應的畫面邏輯)
+│   ├── templates/             ← Jinja2 HTML 模板資料夾 (View)
+│   │   ├── base.html          ← 共用的 HTML 骨架 (包含 Navbar、引入 CSS/JS)
+│   │   ├── index.html         ← 工作清單主頁面
+│   │   └── calendar.html      ← 行事曆視圖頁面
+│   └── static/                ← 靜態資源資料夾
 │       ├── css/
-│       │   └── style.css   ← 全站共用樣式 (如需客製化或擴充 Tailwind)
-│       ├── js/
-│       │   └── custom.js   ← 處理抽籤動畫等前端互動腳本
-│       └── images/         ← 籤筒、擲筊、籤詩圖片等
-├── instance/
-│   └── database.db         ← SQLite 資料庫 (存放實際資料，不進版本控制)
-├── docs/                   ← 專案設計文件 (PRD, 架構文件等)
-├── .gitignore              ← Git 忽略檔案設定
-├── app.py                  ← 專案入口檔 (初始化 Flask App)
-└── requirements.txt        ← Python 套件依賴清單
+│       │   └── style.css      ← 自定義樣式表
+│       └── js/
+│           └── script.js      ← 前端互動邏輯 (如打勾完成時的 Ajax 行為)
+├── instance/                  ← 存放運行時期動態生成的檔案 (不應進入 Git 版本控制)
+│   └── database.db            ← SQLite 資料庫檔案實體
+├── run.py                     ← 啟動 Flask 應用程式伺服器的入口檔案
+├── requirements.txt           ← 專案依賴的 Python 套件清單 (如 flask)
+└── README.md                  ← 專案設定與服務啟動說明文件
 ```
 
 ## 3. 元件關係圖
 
-以下展示使用者從瀏覽器發出請求，到系統處理並回傳畫面的完整流程（MVC 資料流）：
+以下展示專案中各個系統元件的請求與資料流動：
 
 ```mermaid
-graph TD
-    %% 定義節點
-    Browser(瀏覽器 - 使用者)
-    
-    subgraph Flask Application
-        Route[Flask Route<br>Controller]
-        Model[Model<br>Database Logic]
-        Template[Jinja2 Template<br>View]
-    end
-    
-    DB[(SQLite<br>Database)]
+sequenceDiagram
+    participant B as Browser<br>(使用者介面)
+    participant R as Flask Route<br>(Controller)
+    participant M as Model<br>(SQLite)
+    participant T as Jinja2 Template<br>(View)
 
-    %% 流程線
-    Browser -- "1. 發出 HTTP Request (如點擊抽籤)" --> Route
-    Route -- "2. 要求查詢或寫入紀錄" --> Model
-    Model -- "資料讀寫" --> DB
-    Model -. "3. 回傳資料物件" .-> Route
-    Route -- "4. 傳遞變數給視圖渲染" --> Template
-    Template -. "5. 生成完整 HTML" .-> Route
-    Route -. "6. 回傳 HTTP Response (HTML)" .-> Browser
-
-    %% 樣式設定
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef highlight fill:#d4edda,stroke:#28a745,stroke-width:2px;
-    class Route,Model,Template highlight;
+    B->>R: 1. 發送請求 (例如新增任務, 或查看首頁)
+    R->>M: 2. 對資料庫進行 CRUD 操作
+    M-->>R: 3. 回傳工作資料結果 (Tasks)
+    R->>T: 4. 提供最新資料並要求模板渲染
+    T-->>R: 5. 結合資料產出最後的 HTML 文本
+    R-->>B: 6. 回傳 HTML 頁面顯示給使用者
 ```
 
 ## 4. 關鍵設計決策
 
-1. **不分離前後端，採用 Jinja2 直接渲染頁面**
-   - **原因**：考量到這是一個以內容呈現與表單遞交為主的 MVP 專案，採用伺服器端渲染能省去前端框架設置以及 API 串接等跨域 (CORS) 複雜度，開發速度更快，也可以更容易處理 SEO（若未來有需要）。
-2. **利用 Flask Blueprints 按功能拆分路由**
-   - **原因**：為了避免所有的功能（算命、登入、捐款）都混雜在同一個 `app.py` 中，我們在 `routes/` 資料夾下利用 Blueprint 切分不同的負責範圍（例如 `main.py`, `auth.py`）。這樣可以保持程式碼整潔，方便未來擴充或除錯。
-3. **資料庫單純化，採用 SQLite**
-   - **原因**：系統初期主要需要記錄「會員帳號」與「過去抽籤結果」，資料量與併發數不大。選用 SQLite 不需要額外架設資料庫伺服器，且在 Python 內建支援極佳，備份也非常容易（只要拷貝一個 .db 檔案）。
-4. **抽籤/擲筊等動畫效果交由前端 JavaScript 實作**
-   - **原因**：互動動畫（例如搖晃籤筒、丟擲筊杯）是不需要頻繁往返後端邏輯的視覺效果。為確保畫面流暢自然，這些互動將在前端使用純 JavaScript 及 CSS 動畫負責，直到結果出爐才與後端通訊（例如儲存紀錄或判斷邏輯），減少伺服器負載。
+1. **採用伺服器端渲染 (Server-Side Rendering, SSR)**
+   - **考量點**：對於一個 MVP 階段的工作管理應用來說，核心功能是快速且正確地進行增刪改查。
+   - **決定**：使用 Flask 路由加上 Jinja2 作為介面渲染方案。少量需要不重新載入頁面的操作（例如切換任務完成狀態）可透過原生 Fetch API 搭配 Flask 的小支 API 實作。這有效減少了系統複雜度。
+2. **資料庫檔案安全性考量**
+   - **考量點**：開發時，資料庫常常會連同敏感資料一起不小心被上傳到公開的程式庫。
+   - **決定**：遵循 Flask 的官方最佳實踐，將 SQLite 檔案放置於專案根目錄的 `instance/` 資料夾內，確保該資料夾已加入 `.gitignore` 排除清單中，以防外流風險。
+3. **任務狀態的篩選實現方式**
+   - **考量點**：在首頁切換「全部」、「已完成」、「未完成」時的體驗。
+   - **決定**：作為初步版本，將會使用 URL query 參數（例如 `/?status=completed`）讓後端讀取並返回篩選後的資料頁面。相較於前端篩選，此做法更具備可擴展的資料串接能力。
