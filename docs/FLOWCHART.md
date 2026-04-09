@@ -1,84 +1,80 @@
-# 系統流程圖：線上算命系統
-
-本文件根據產品需求文件 (PRD) 與系統架構文件 (ARCHITECTURE)，繪製線上算命系統的使用者流程與系統資料流。
+# 流程圖與路徑設計 (Flowchart) - 工作管理系統
 
 ## 1. 使用者流程圖（User Flow）
 
-此流程圖描述使用者進入網站後，可以進行的各種操作路徑，包含抽籤互動、會員登入與後續如捐款、儲存等動作。
+這張圖展示了使用者進入系統後，所有可能的操作與路線：
 
 ```mermaid
 flowchart LR
-    A([使用者造訪首頁]) --> B[首頁 / 導覽]
-    B --> C{選擇系統功能}
+    A([使用者開啟系統網頁]) --> B(主畫面：工作清單)
     
-    %% 算命抽籤主流程
-    C -->|1. 開始抽籤/算命| D[前端互動動畫（擲筊/搖籤筒）]
-    D --> E[顯示算命與抽籤結果]
+    B --> C{選擇檢視或操作？}
     
-    %% 抽籤結果後的後續動作
-    E --> F{觀看結果後...}
-    F -->|分享結果| K[呼叫社群分享 (FB/Line)]
-    F -->|儲存紀錄| G{是否已登入？}
+    %% 檢視與篩選
+    C -->|切換視圖| D[行事曆視圖]
+    C -->|依狀態篩選| E[已過濾的工作清單<br/>全部/未完成/已完成]
+    D -.->|返回| B
+    E -.->|清除篩選| B
+
+    %% 新增、修改、刪除與狀態切換
+    C -->|新增| F[填寫新增工作表單並送出]
+    C -->|編輯| G[點擊編輯，修改內容並送出]
+    C -->|切換狀態| H[點擊勾選或取消勾選完成狀態]
+    C -->|刪除| I[點擊刪除按鈕]
     
-    G -->|未登入| I[導向登入/註冊頁面]
-    I -->|登入成功| H
-    G -->|已登入| H[將紀錄存入個人帳號]
-    H --> J[個人歷史紀錄頁面]
+    F --> J([重新導向/更新畫面])
+    G --> J
+    H --> J
+    I --> J
     
-    %% 其他功能
-    C -->|2. 查看歷史紀錄| G
-    C -->|3. 捐獻香油錢| L[捐獻頁面 (顯示轉帳/金流)]
-    F -->|點擊香油錢| L
+    J -.-> B
 ```
 
 ## 2. 系統序列圖（Sequence Diagram）
 
-此序列圖描述核心情境：「**使用者進行抽籤並儲存結果**」的完整系統流轉過程。
+這張圖透過「新增工作」的範例，說明了前、後端與資料庫之間是如何互動。
 
 ```mermaid
 sequenceDiagram
     actor User as 使用者
-    participant Browser as 瀏覽器 (JS/HTML)
-    participant Route as Flask Route (Controller)
-    participant Model as Database Model 
-    participant DB as SQLite
-
-    User->>Browser: 1. 點擊「開始抽籤」
-    Browser->>Browser: 2. 播放抽籤動畫 (不消耗伺服器資源)
-    Browser->>Route: 3. POST /draw (獲取抽籤結果)
-    Route->>Model: 4. 隨機讀取籤詩庫
-    Model-->>Route: 5. 回傳對應的籤詩資料
-    Route-->>Browser: 6. 回傳結果頁面 (Jinja2 HTML)
-
-    User->>Browser: 7. 點擊「儲存紀錄」
-    Browser->>Route: 8. POST /record/save
-    Route->>Route: 9. 檢查 Session 確認登入狀態
+    participant Browser as 瀏覽器 (HTML/JS)
+    participant Flask as Flask (後端)
+    participant DB as SQLite (資料庫)
     
-    alt 如果使用者尚未登入
-        Route-->>Browser: 10a. HTTP 302 導向至 /login
-        User->>Browser: 11a. 填寫帳密登入並自動回源
-    end
-
-    Route->>Model: 10b. 呼叫寫入算命紀錄函式
-    Model->>DB: 11b. INSERT INTO records (user_id, result)
-    DB-->>Model: 12. 寫入成功
-    Model-->>Route: 13. 回傳成功狀態
-    Route-->>Browser: 14. HTTP 302 導向至 /history
-    Browser->>User: 15. 顯示歷史紀錄列表
+    %% 使用者觸發
+    User->>Browser: 填寫「新增任務」欄位並點擊送出
+    
+    %% 發送請求
+    Browser->>Flask: POST /add-task (包含標題、日期等資料)
+    
+    %% 後端處理與資料庫互動
+    Flask->>Flask: 驗證接收到的資料
+    Flask->>DB: INSERT INTO tasks (寫入新資料)
+    DB-->>Flask: 寫入成功
+    
+    %% 重新導向與渲染畫面
+    Flask-->>Browser: Redirect (302) 回到主畫面路徑 /
+    Browser->>Flask: GET / (請求取得主畫面)
+    Flask->>DB: SELECT * FROM tasks (撈取最新任務)
+    DB-->>Flask: 回傳所有任務資料
+    Flask->>Flask: 使用 Jinja2 組合資料與 HTML 模板
+    Flask-->>Browser: 回傳已渲染的首頁 HTML
+    
+    %% 介面顯示
+    Browser->>User: 顯示已更新的任務清單
 ```
 
-## 3. 功能清單與路由對照表
+## 3. 功能清單對照表
 
-以下整理了系統內所有的主要功能，並對應到具體的 HTTP 方法、URL 路徑，與將被渲染的 Jinja2 模板檔，以利後續的 `/api-design` 與路由開發。
+以下整理了系統中所有主要功能的存取路徑，對應的 HTTP 方法，以及該行為執行的目的。這個對照表有助於接下來建立 Flask 的路由。
 
-| 功能名稱 | 功能說明 | URL 路徑 | HTTP 方法 | 對應視圖 (Jinja2 / Controller 行為) |
-|----------|------|----------|-----------|------------------|
-| **網站首頁** | 顯示系統導覽與開始算命按鈕 | `/` | GET | `index.html` |
-| **會員註冊** | 填寫表單建立新使用者 | `/register` | GET, POST | `auth/register.html` |
-| **會員登入** | 登入並寫入 Session | `/login` | GET, POST | `auth/login.html` |
-| **會員登出** | 清除 Session 狀態 | `/logout` | GET | 無 (直接導回到首頁 `/`) |
-| **執行抽籤** | 送出抽籤請求獲取隨機結果 | `/draw` | POST | 核心邏輯處理後導向 `/result/<id>` |
-| **顯示結果** | 呈現籤詩或算命的詳細內容 | `/result/<id>` | GET | `result.html` |
-| **儲存結果** | 將當下這筆紀錄綁定使用者帳號 | `/record/save` | POST | 無 (直接導向至 `/history`) |
-| **歷史紀錄** | 列出自己過去儲存的算命結果 | `/history` | GET | `history.html` |
-| **捐香油錢** | 顯示線上捐款或轉帳資訊頁面 | `/donate` | GET, POST | `donate.html` |
+| 功能項目 | 路徑 (URL Endpoint) | HTTP 請求方法 | 說明 |
+| --- | --- | --- | --- |
+| **首頁/目前清單** | `/` | `GET` | 顯示所有或根據 GET 參數（如 `?status=done`）篩選過的工作清單 |
+| **行事曆視圖** | `/calendar` | `GET` | 顯示行事曆介面的工作排程 |
+| **新增工作** | `/add` | `POST` | 接收表單提交資料建立新工作，完成後重導向回首頁 |
+| **編輯工作** | `/edit/<task_id>` | `POST` | 接收表單提交資料更新指定工作，完成後重導向回首頁 |
+| **切換完成狀態** | `/toggle/<task_id>` | `POST` | 將指定任務切換為「完成」或「未完成」，完成後重導向回首頁 |
+| **刪除工作** | `/delete/<task_id>` | `POST` | 刪除與 URL 參數對應的指定任務，完成後重導向回首頁 |
+
+> 註：在不依賴進階前端框架下（全後端渲染），編輯、切換狀態及刪除皆建議使用 `POST` 方法搭配網頁表單發送，可避免瀏覽器對 HTTP PUT 或 DELETE 方法支援程度的問題。
