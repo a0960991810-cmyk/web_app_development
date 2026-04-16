@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <h4 class="mb-4 fw-bold">行事曆檢視 <small class="text-muted fs-6 fw-normal">(依到期日分組)</small></h4>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <!-- 利用 groupby 篩選器，快速針對任務的到期日進行分類 -->
+            {% for group in tasks|groupby('due_date') %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                    <!-- 若無期限顯示灰色卡牌表頭，否則顯示藍綠色 -->
+                    <div class="card-header border-bottom-0 {{ 'bg-secondary' if not group.grouper else 'bg-info' }} text-white text-center py-3">
+                        <strong class="fs-5">{{ group.grouper if group.grouper else '近期 / 不限期' }}</strong>
+                    </div>
+                    <ul class="list-group list-group-flush h-100 bg-white">
+                        {% for task in group.list %}
+                        <li class="list-group-item px-3 py-3 border-0 border-bottom {{ 'bg-light' if task.is_completed else '' }}">
+                            <div class="d-flex align-items-xs-start align-items-center {{ 'text-muted text-decoration-line-through' if task.is_completed else '' }}">
+                                <span class="me-2 fs-5">{{ '✅' if task.is_completed else '📌' }}</span>
+                                <span class="text-break">{{ task.title }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <!-- 如果完全沒有任務內容的空畫面設計 -->
+            <div class="col-12 text-center text-muted mt-5">
+                <div class="fs-1 mb-3">📅</div>
+                <p>目前行事曆空空如也。</p>
+                <a href="{{ url_for('tasks.index') }}" class="btn btn-outline-primary">去新增一些任務吧！</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- 新增任務區塊 -->
+<div class="row mb-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3 fw-bold">快速新增任務</h5>
+                <form action="{{ url_for('tasks.add_task') }}" method="POST" class="row g-3">
+                    <div class="col-md-7">
+                        <input type="text" name="title" class="form-control" placeholder="輸入要完成的事情..." required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" name="due_date" class="form-control" title="預期完成日">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">＋ 新增</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 任務清單區塊 -->
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3">
+            <h4 class="mb-3 mb-sm-0 fw-bold">我的工作清單</h4>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('tasks.index') }}" class="btn btn-sm btn-outline-secondary {{ 'active' if not current_status else '' }}">全部</a>
+                <a href="{{ url_for('tasks.index', status='pending') }}" class="btn btn-sm btn-outline-secondary {{ 'active' if current_status == 'pending' else '' }}">未完成</a>
+                <a href="{{ url_for('tasks.index', status='completed') }}" class="btn btn-sm btn-outline-secondary {{ 'active' if current_status == 'completed' else '' }}">已完成</a>
+            </div>
+        </div>
+
+        <ul class="list-group shadow-sm rounded-3">
+            {% for task in tasks %}
+            <li class="list-group-item d-flex justify-content-between align-items-center p-3 {{ 'bg-light' if task.is_completed else '' }}">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <!-- 切換狀態的 Checkbox -->
+                    <form action="{{ url_for('tasks.toggle_status', task_id=task.id) }}" method="POST" class="me-3">
+                        <input class="form-check-input mt-0 fs-4" type="checkbox" onchange="this.form.submit()" {% if task.is_completed %}checked{% endif %}>
+                    </form>
+                    
+                    <div class="{{ 'text-decoration-line-through text-muted' if task.is_completed else '' }}">
+                        <strong class="d-block fs-5">{{ task.title }}</strong>
+                        {% if task.due_date %}
+                        <small class="{{ 'text-muted' if task.is_completed else 'text-danger' }}">
+                            📅 到期日: {{ task.due_date }}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 ms-3">
+                    <!-- 編輯按鈕觸發 Modal -->
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ task.id }}">
+                        ✏️ 編輯
+                    </button>
+                    <!-- 刪除任務按鈕 -->
+                    <form action="{{ url_for('tasks.delete_task', task_id=task.id) }}" method="POST" onsubmit="return confirm('這將永久刪除「{{ task.title }}」\n確定要刪除嗎？');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ 刪除</button>
+                    </form>
+                </div>
+            </li>
+
+            <!-- 編輯對話框 (Modal) -->
+            <div class="modal fade" id="editModal{{ task.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ task.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold" id="editModalLabel{{ task.id }}">修改任務</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="{{ url_for('tasks.edit_task', task_id=task.id) }}" method="POST">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">任務名稱</label>
+                                    <input type="text" name="title" class="form-control mb-2" value="{{ task.title }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">預期完成日期</label>
+                                    <input type="date" name="due_date" class="form-control" value="{{ task.due_date if task.due_date else '' }}">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">取消</button>
+                                <button type="submit" class="btn btn-primary">儲存變更</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- 無資料畫面 -->
+            <li class="list-group-item text-center text-muted py-5 bg-white border-0">
+                <div class="fs-1 mb-2">📋</div>
+                <p class="mb-0">目前沒有需要處理的任務！</p>
+                {% if current_status %}
+                    <small>你可以嘗試切換過濾標籤查看其他狀態的內容。</small>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
