@@ -32,7 +32,7 @@
 - **輸入**: HTML Form 表單提交，包含 `title` (文字，必填) 與 `due_date` (日期，選填)。
 - **處理邏輯**: 呼叫 `Task.create(conn, title, due_date)`。
 - **輸出**: 執行完成後 HTTP 302 Redirect 至首頁 `/`。
-- **錯誤處理**: 若 `title` 為空或不符規則，回傳 400 Bad Request，或建立 flash 錯誤訊息後重新渲染表單頁面。
+- **錯誤處理**: 若 `title` 為空或不符規則，回傳 400 Bad Request，或建立 flash ��誤訊息後重新渲染表單頁面。
 
 ### 2.4 編輯工作
 - **路由**: `POST /edit/<int:task_id>`
@@ -63,7 +63,7 @@
 
 1. **`base.html`**
    - 作為全站的根模板 (Base Template)。
-   - 包含通用的 HTML 結構（如 `<head>`）、全局導覽列 (Navbar)，並保留 `{% block content %}{% endblock %}` 供子模板插入各自的邏輯片段。
+   - 包含通用的 HTML 結構（如 `<head>`）、全局導覽列 (Navbar)，並保留 `{% raw %}{% block content %}{% endblock %}{% endraw %}` 供子模板插入各自的邏輯片段。
    
 2. **`index.html`**
    - 繼承自 `base.html`。
@@ -75,4 +75,4 @@
 
 ## 4. 路由骨架程式碼
 
-路由骨架將儲存在 `app/routes/tasks.py` 之中。由於架構較為輕量，將集中使用 Flask Blueprint 封裝所有與工作任務有關的邏輯，方便後續在主程式掛載。
+路由骨架將儲存在 `app/routes/tasks.py` 之中。由於架構較為輕量，將集中使用 Flask Blueprint 封裝所有與工作任務有關的邏輯，方便後續在主程式掛載.
